@@ -29,8 +29,8 @@ pipeline {
        }
        stage("Etapa 2") {
            
-           stages {
-               stage("Etapa 2.1") {
+           parallel {
+               stage("Etapa 2.1 Pruebas Chrome") {
                    steps {
                        sh "sleep 10"
                        sh "echo Soy la etapa 2.1"
@@ -41,7 +41,7 @@ pipeline {
                        }
                    }
                }
-               stage("Etapa 2.2") {
+               stage("Etapa 2.2 Pruebas Safari") {
                    steps {
                        sh "sleep 10"
                        sh "echo Soy la etapa 2.2"
