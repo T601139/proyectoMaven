@@ -69,4 +69,5 @@ pipeline {
             cleanWs deleteDirs: true, patterns: [[pattern: 'target', type: 'INCLUDE']]
         }
     }
+ }
 }
