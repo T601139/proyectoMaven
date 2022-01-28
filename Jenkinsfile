@@ -4,7 +4,17 @@
 
 pipeline {
     
-    agent any
+    // agent any
+    
+     agent {
+        docker {
+            image "maven:3.8.4-jdk-11"
+        }
+    }
+    
+    // environment {
+    //    rutaSonarScanner= tool "misonarscanner"
+    // } 
     
     stages {
         stage("Compilación") {
@@ -59,8 +69,8 @@ pipeline {
                         timeout(time: 10, unit: 'MINUTES'){
                             waitForQualityGate abortPipeline: true
                         }
+                    }
                 }
-            }
             }
         }
         stage("Empaquetado") {
