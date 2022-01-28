@@ -43,6 +43,7 @@ pipeline {
                         }
                     }
                 }
+                }                
                 stage("SonarQube") {
                     steps {
                         withSonarQubeEnv('sonarqube'){
@@ -57,6 +58,7 @@ pipeline {
                             waitForQualityGate abortPipeline: true
                         }
                 }
+            }
             }
         }
         stage("Empaquetado") {
@@ -75,6 +77,4 @@ pipeline {
             cleanWs deleteDirs: true, patterns: [[pattern: 'target', type: 'INCLUDE']]
         }
     }
- }
-}
 }
