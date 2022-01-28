@@ -4,79 +4,76 @@
 
 pipeline {
     
-    agent any // Para definir DONDE QUIERO QUE SE EJECUTE ESTA TAREA
+    agent any
     
     stages {
-       stage("Etapa 1") {
-           steps { // Hacemos las llamadas a los plugins
-               sh "echo Soy la etapa 1" // Llamada al plugin que ejecuta una shell
-               sh "echo Sigo" // Llamada al plugin que ejecuta una shell
-               sh "echo Sigo" // Llamada al plugin que ejecuta una shell
-               sh "echo Sigo" // Llamada al plugin que ejecuta una shell
-               sh "echo Salgo de la etapa 1" // Llamada al plugin que ejecuta una shell
-           }
-           post {
-               always { // Post tareas que siempre deben de ejecutarse
-                  sh "echo Acabó la etapa 1"
-               }
-               success { // Postareas que SOLO se ejecutan si los pasos (STEPS) han ido bien
-                  sh "echo Y acabó bien"
-               }
-               failure { // Postareas que SOLO se ejecutan si los pasos (STEPS) han dado error
-                  sh "echo Pero acabó mal"
-               }
-           }
-       }
-       stage("Etapa 2") {
-           
-           parallel {
-               stage("Etapa 2.1 Pruebas Chrome") {
-                   steps {
-                       sh "sleep 10"
-                       sh "echo Soy la etapa 2.1"
-                   }
-                   post {
-                       success { // Post tareas que siempre deben de ejecutarse
-                          sh "echo Acabó la etapa 2.1 bien!"
-                       }
-                   }
-               }
-               stage("Etapa 2.2 Pruebas Safari") {
-                   steps {
-                       sh "sleep 10"
-                       sh "echo Soy la etapa 2.2"
-                   }
-                   post {
-                       failure { // Post tareas que siempre deben de ejecutarse
-                          sh "echo Acabó la etapa 2.2 con error"
-                       }
-                   }
-               }
-           }
-           
-           post {
-               always { // Post tareas que siempre deben de ejecutarse
-                  sh "echo Acabó la etapa 2"
-               }
-               success { // Postareas que SOLO se ejecutan si los pasos (STEPS) han ido bien
-                  sh "echo Y acabó bien"
-               }
-               failure { // Postareas que SOLO se ejecutan si los pasos (STEPS) han dado error
-                  sh "echo Pero acabó mal"
-               }
-           }
-       }
+        stage("Compilación") {
+            sh "mvn compile"
+        }
+        stage("Pruebas") {
+            stages {
+                stage("Pruebas Dinámicas") {
+                    stages {
+                        stage("Compilación pruebas") {
+                        	/* Solucion con MAGIA... evitar                    
+                                steps {
+                                    // Compilar pruebas -> Las pruebas no pueden ejecutarse
+                                    // Ejecutar pruebas -> Genera informe... tanto si se ejecutan bien como si se ejecutan mal
+                                }
+                                post {
+                                    always {
+                                        junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml' 
+                                    }    
+                                }
+                            */       
+                            steps {
+                                // Compilar pruebas -> Las pruebas no pueden ejecutarse
+                                sh "mvn test-compile"
+                            }
+                        }
+                        stage("Ejecución pruebas") {
+                            steps {
+                                // Ejecutar pruebas -> Genera informe... tanto si se ejecutan bien como si se ejecutan mal
+                                sh "mvn test"
+                            }
+                            post{
+                                always {
+                                    // Guardar el informe de pruebas <- 
+                                    junit testResults: 'target/surefire-reports/*.xml' 
+                                    
+                                }    
+                            }
+                        }
+                    }
+                }
+		stage("SonarQube") {
+                    // Sonarqube
+                    sh """
+                        mvn sonar:sonar -Dsonar.projectKey=proyectoMaven \
+					        -Dsonar.host.url=http://172.31.0.155:8081 \
+					        -Dsonar.login=2cbcf934ea9f835d09484f04b151eb9411231193
+					"""
+                }
+            }
+        }
+        stage("Empaquetado") {
+            steps {
+                // Empaquetar
+                sh "mvn package -Dmaven.test.skip=true"
+            }
+            post{
+                success {
+                    // Guardar el artefacto (resultante del empaquetado)
+                    archiveArtifacts artifacts: 'target/*.jar', followSymlinks: false
+                }
+            }
+        }
     }
-
     post {
-       always { // Post tareas que siempre deben de ejecutarse
-          sh "echo Acabó la etapa 2"
-       }
-       success { // Postareas que SOLO se ejecutan si los pasos (STEPS) han ido bien
-          sh "echo Y acabó bien"
-       }
-       failure { // Postareas que SOLO se ejecutan si los pasos (STEPS) han dado error
-          sh "echo Pero acabó mal"
-       }
+        always {
+            // Borrar el espacio de trabajo
+            cleanWs deleteDirs: true, patterns: [[pattern: 'target', type: 'INCLUDE']]
+            
+        }
     }
 }
