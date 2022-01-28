@@ -13,19 +13,19 @@ pipeline {
         stage("Pruebas") {
             stages {
                 stage("Pruebas Dinámicas") {
-                    /* Solucion con MAGIA... evitar                    
-                    steps {
-                        // Compilar pruebas -> Las pruebas no pueden ejecutarse
-                        // Ejecutar pruebas -> Genera informe... tanto si se ejecutan bien como si se ejecutan mal
-                    }
-                    post {
-                        always {
-                            junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml' 
-                        }    
-                    }
-                    */                    
                     stages {
                         stage("Compilación pruebas") {
+                        	/* Solucion con MAGIA... evitar                    
+                                steps {
+                                    // Compilar pruebas -> Las pruebas no pueden ejecutarse
+                                    // Ejecutar pruebas -> Genera informe... tanto si se ejecutan bien como si se ejecutan mal
+                                }
+                                post {
+                                    always {
+                                        junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml' 
+                                    }    
+                                }
+                            */       
                             steps {
                                 // Compilar pruebas -> Las pruebas no pueden ejecutarse
                                 sh "mvn test-compile"
@@ -35,30 +35,35 @@ pipeline {
                             steps {
                                 // Ejecutar pruebas -> Genera informe... tanto si se ejecutan bien como si se ejecutan mal
                                 sh "mvn test"
+                            }
                             post{
                                 always {
+                                    // Guardar el informe de pruebas <- 
                                     junit testResults: 'target/surefire-reports/*.xml' 
+                                    
                                 }    
                             }
                         }
                     }
                 }
-                stage("SonarQube") {
+		stage("SonarQube") {
+                    // Sonarqube
                     sh """
-                    mvn sonar:sonar \
-                        -Dsonar.projectKey=proyectoMaven \
-                        -Dsonar.host.url=http://172.31.0.155:8081 \
-					    -Dsonar.login=2cbcf934ea9f835d09484f04b151eb9411231193
-                    """
+                        mvn sonar:sonar -Dsonar.projectKey=proyectoMaven \
+					        -Dsonar.host.url=http://172.31.0.155:8081 \
+					        -Dsonar.login=2cbcf934ea9f835d09484f04b151eb9411231193
+					"""
                 }
             }
         }
         stage("Empaquetado") {
             steps {
+                // Empaquetar
                 sh "mvn package -Dmaven.test.skip=true"
             }
             post{
                 success {
+                    // Guardar el artefacto (resultante del empaquetado)
                     archiveArtifacts artifacts: 'target/*.jar', followSymlinks: false
                 }
             }
@@ -66,7 +71,9 @@ pipeline {
     }
     post {
         always {
+            // Borrar el espacio de trabajo
             cleanWs deleteDirs: true, patterns: [[pattern: 'target', type: 'INCLUDE']]
+            
         }
     }
 }
